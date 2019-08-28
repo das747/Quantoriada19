@@ -4,45 +4,47 @@
 #include <Adafruit_Sensor.h> // барометр
 #include <Adafruit_BMP280.h>
 #include "DHT.h"     //для датчика влажности/температуры
-#include "Servo.h"
 //***************************************************
-//#define FAN 8         // основной кулер  // ПЕРЕПИСАТЬ ЧЕРЕЗ КОНСТАНТЫ
-//#define COOLER 10     // насос и пельтье
-//#define HEATER 9          // малый кулер
-//#define LED 11              // освещение
+// основной кулер
+// насос и пельтье
+// малый кулер
+// LED освещение
 
-const byte FAN = 8;  // ВОТ ТАК
+const byte FAN = 8, COOLER = 10, HEATER = 9, LED = 11, STR = ;  // STR???
 //***************************************************
 DHT dht(12, DHT11);        //датчик влажности/температуры внутренний
-
 Adafruit_BMP280 bmp;       //барометр
-Servo servo;
 
 String rx_dic[] = {"mode=", "\tset_t=", "\tlight=", "\tgas="};
 String tx_dic[] = {"hm=", "\tt=", "\tpr=", "", "", "\tco2=", "", "\ttout="}; //массив с назвниями передаваемых значений, перед каждым кроме первого нужно "\t"
 byte cmd[9] = {0xFF, 0x01, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79}; //команда запроса показаний для датчика со2
 unsigned char response[9] = {0}; //массив для ответа от датчика со2
 
-// ОБЪЯВТИТЬ МАССИВЫ ПРИЁМА И ПЕРЕДАЧИ
+// ОБЪЯВЛЯЕМ МАССИВЫ ПРИЁМА И ПЕРЕДАЧИ
+byte rx_buf[] = {0, 0, 28, 0}; //принимаемый
+byte message[] = {0, 0, 0, 0, 0, 0, 0}; //служебный для отправки
+unsigned long analyse[] = {99000, 0, 0}, prev_pr = 99000, timer;  //зачем это здесь?
+byte time_step = 100;
+unsigned long = start;
 
+//********************************************
 void setup() {
   Serial.begin(9600); // связь с компьютером
   dht.begin();        //датчик влажности/температуры
-  bmp.begin(0x76);
-  servo.attach(13);
-  pinMode(8, OUTPUT); // ПЕРЕПИСАТЬ ЧЕРЕЗ КОНСТАНТЫ
-  pinMode(9, OUTPUT);
-  pinMode(10, OUTPUT);
-  pinMode(11, OUTPUT);
-  //pinMode(13, OUTPUT);
+  bmp.begin(0x76);    //барометр
+  pinMode(FAN, OUTPUT); // ПЕРЕПИСАТЬ ЧЕРЕЗ КОНСТАНТЫ
+  pinMode(HEATER, OUTPUT);
+  pinMode(COOLER, OUTPUT);
+  pinMode(LED, OUTPUT);
   Serial2.begin(9600);  //соединение с датчиком со2
+  //  ГДЕ РАДИО?
 }
 
 
 void loop() {
   //**************************ДЕБАГ*******************************************
   Serial.print("recieved:");   //для отладки выводим принятый и отправленный массивы
-  for (byte i = 0; i < RX_PLOAD_WIDTH; i++) {
+  for (byte i = 0; i < RX_PLOAD_WIDTH; i++) {  // ОПРЕДЕЛЕНИЕ РАЗМЕРА
     Serial.print(rx_dic[i]);
     if (rx_buf[i] < 128) Serial.print(rx_buf[i]);
     else Serial.print(rx_buf[i] - 256);
@@ -50,7 +52,7 @@ void loop() {
   Serial.print('\t');
 
   Serial.print("transmitted:");
-  for (int i = 0; i < TX_PLOAD_WIDTH; i++) {
+  for (int i = 0; i < TX_PLOAD_WIDTH; i++) {   // ОПРЕДЕЛЕНИЕ РАЗМЕРА
     Serial.print(tx_dic[i]);
     if (message[i] < 128) Serial.print(message[i]);
     else Serial.print(message[i]);
@@ -61,10 +63,10 @@ void loop() {
   int hm = dht.readHumidity();
   int t = dht.readTemperature();
   int long pr = bmp.readPressure();
-  int tout = dhtOUT.readTemperature();
+  int tout = dhtOUT.readTemperature();  // ???
 
   // процедура опроса датчика со2
-  Serial1.write(cmd, 9); 
+  Serial1.write(cmd, 9);
   Serial1.readBytes(response, 9);
   byte crc = 0;
   for (int i = 1; i < 8; i++) crc += response[i];
@@ -93,8 +95,6 @@ void loop() {
   digitalWrite(HEATER, heat);
   digitalWrite(COOLER, cool);
   digitalWrite(FAN, !(cool or heat));
-  if (rx_buf[3]) servo.write(180); // DHFJGKHVGHCJKLK
-  else servo.write(90);
 
   //*********************************СВЯЗЬ***************************************
   message[0] = hm;
@@ -102,8 +102,32 @@ void loop() {
   message[2] = int(pr / 10000);
   message[3] = int(pr / 100 % 100);
   message[4] = int(pr % 100);
-  message[7] = tout; //УБРАТЬ
   message[5] = byte(ppm / 100);
   message[6] = byte(ppm % 100);
 
-}
+
+  //********************************РАДИО*****************************************
+  void transmition() {
+    radio.write(0xFF);
+    byte checksum = 0;
+    for (byte i = 0; i < (sizeof(message) / sizeof(message[0])); i++) {
+      checksum += message[i];
+      radio.write(message[i]);
+    }
+    radio.write((0xFF - checksum) + 1);
+  }
+
+  bool reception() { // приём массива значений
+    byte checksum = 0;
+    byte buf[(sizeof(rx_buf) / sizeof(rx_buf[0]))] = {};
+    if (radio.available() and (radio.read() == 0xFF)) {
+      for (int i = 0; i < (sizeof(rx_buf) / sizeof(rx_buf[0])); i++) {
+        byte val = radio.read();
+        buf[i] = val;
+        checksum += val;
+      }
+    }
+    if (((0xFF - checksum) + 1) == radio.read()) {
+      for (int i = 0; i < (sizeof(rx_buf) / sizeof(rx_buf[0])); i++) rx_buf[i] = buf[i];
+    }
+  }
