@@ -28,7 +28,7 @@ String analyse_dic[] = {"max", "\ttimer", "\tdif"};
 
 
 //объявляем массивы:
-byte rx_buf[] = {0, 0, 0, 0, 0, 0, 0, 0}; //принимаемый
+byte rx_buf[] = {0, 0, 0, 0, 0, 0, 0}; //принимаемый
 byte message[] = {0, 0, 28, 0}; //служебный для отправки
 unsigned long analyse[] = {99000, 0, 0}, prev_pr = 99000, timer;
 byte time_step = 100;
