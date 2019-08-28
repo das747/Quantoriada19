@@ -10,32 +10,30 @@
 // малый кулер
 // LED освещение
 
-const byte FAN = 8, COOLER = 10, HEATER = 9, LED = 11, STR = ;  // STR???
+const byte SCG = 8, HEATER = 9, COOLER = 10, LED = 11, STR = 12 ;
 //***************************************************
 DHT dht(12, DHT11);        //датчик влажности/температуры внутренний
 Adafruit_BMP280 bmp;       //барометр
 
 String rx_dic[] = {"mode=", "\tset_t=", "\tlight=", "\tgas="};
-String tx_dic[] = {"hm=", "\tt=", "\tpr=", "", "", "\tco2=", "", "\ttout="}; //массив с назвниями передаваемых значений, перед каждым кроме первого нужно "\t"
+String tx_dic[] = {"hm=", "\tt=", "\tpr=", "", "", "\tco2=", ""}; //массив с назвниями передаваемых значений, перед каждым кроме первого нужно "\t"
 byte cmd[9] = {0xFF, 0x01, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79}; //команда запроса показаний для датчика со2
 unsigned char response[9] = {0}; //массив для ответа от датчика со2
 
 // ОБЪЯВЛЯЕМ МАССИВЫ ПРИЁМА И ПЕРЕДАЧИ
-byte rx_buf[] = {0, 0, 28, 0}; //принимаемый
+byte rx_buf[] = {0, 28, 0, 0, }; //принимаемый
 byte message[] = {0, 0, 0, 0, 0, 0, 0}; //служебный для отправки
-unsigned long analyse[] = {99000, 0, 0}, prev_pr = 99000, timer;  //зачем это здесь?
-byte time_step = 100;
-unsigned long = start;
 
 //********************************************
 void setup() {
   Serial.begin(9600); // связь с компьютером
   dht.begin();        //датчик влажности/температуры
   bmp.begin(0x76);    //барометр
-  pinMode(FAN, OUTPUT); // ПЕРЕПИСАТЬ ЧЕРЕЗ КОНСТАНТЫ
+  pinMode(SCG, OUTPUT); // ПЕРЕПИСАТЬ ЧЕРЕЗ КОНСТАНТЫ
   pinMode(HEATER, OUTPUT);
   pinMode(COOLER, OUTPUT);
   pinMode(LED, OUTPUT);
+  pinMode(STR, OUTPUT)
   Serial2.begin(9600);  //соединение с датчиком со2
   //  ГДЕ РАДИО?
 }
@@ -63,8 +61,7 @@ void loop() {
   int hm = dht.readHumidity();
   int t = dht.readTemperature();
   int long pr = bmp.readPressure();
-  int tout = dhtOUT.readTemperature();  // ???
-
+ 
   // процедура опроса датчика со2
   Serial1.write(cmd, 9);
   Serial1.readBytes(response, 9);
@@ -89,12 +86,12 @@ void loop() {
   mode = rx_buf[0];
   set_t = rx_buf[1];
   light = rx_buf[2];
-  bool cool = (mode == 3) or (mode == 1 and t < set_t);
+  bool cool = (mode == 3) or (mode == 1 and t < set_t); //вкл.СН - (мод: 1) и авто.вкл.СН - (мод: 3)
   bool heat = !cool and mode;
   digitalWrite(LED, light);
   digitalWrite(HEATER, heat);
   digitalWrite(COOLER, cool);
-  digitalWrite(FAN, !(cool or heat));
+  digitalWrite(SCG, );
 
   //*********************************СВЯЗЬ***************************************
   message[0] = hm;
