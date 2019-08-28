@@ -1,4 +1,4 @@
-//код станции  ИСПРАВИТЬ, ВЫПИЛИТЬ СЕРВУ
+//код станции  ИСПРАВИТЬ
 
 #include <Wire.h>
 #include <Adafruit_Sensor.h> // барометр
@@ -29,20 +29,20 @@ void setup() {
   Serial.begin(9600); // связь с компьютером
   dht.begin();        //датчик влажности/температуры
   bmp.begin(0x76);    //барометр
-  pinMode(SCG, OUTPUT); // ПЕРЕПИСАТЬ ЧЕРЕЗ КОНСТАНТЫ
+  pinMode(SCG, OUTPUT);
   pinMode(HEATER, OUTPUT);
   pinMode(COOLER, OUTPUT);
   pinMode(LED, OUTPUT);
   pinMode(STR, OUTPUT)
   Serial2.begin(9600);  //соединение с датчиком со2
-  //  ГДЕ РАДИО?
+  //  ГДЕ РАДИО? ?  ?
 }
 
 
 void loop() {
   //**************************ДЕБАГ*******************************************
   Serial.print("recieved:");   //для отладки выводим принятый и отправленный массивы
-  for (byte i = 0; i < RX_PLOAD_WIDTH; i++) {  // ОПРЕДЕЛЕНИЕ РАЗМЕРА
+  for (byte i = 0; i < RX_PLOAD_WIDTH; i++) {  // ОПРЕДЕЛЕНИЕ РАЗМЕРА  ? 
     Serial.print(rx_dic[i]);
     if (rx_buf[i] < 128) Serial.print(rx_buf[i]);
     else Serial.print(rx_buf[i] - 256);
@@ -50,7 +50,7 @@ void loop() {
   Serial.print('\t');
 
   Serial.print("transmitted:");
-  for (int i = 0; i < TX_PLOAD_WIDTH; i++) {   // ОПРЕДЕЛЕНИЕ РАЗМЕРА
+  for (int i = 0; i < TX_PLOAD_WIDTH; i++) {   // ОПРЕДЕЛЕНИЕ РАЗМЕРА  ? 
     Serial.print(tx_dic[i]);
     if (message[i] < 128) Serial.print(message[i]);
     else Serial.print(message[i]);
@@ -86,12 +86,12 @@ void loop() {
   mode = rx_buf[0];
   set_t = rx_buf[1];
   light = rx_buf[2];
-  bool cool = (mode == 3) or (mode == 1 and t < set_t); //вкл.СН - (мод: 1) и авто.вкл.СН - (мод: 3)
+  bool cool = (mode == 3) or (mode == 1 and t < set_t); // mode=0: off; mode=1: auto; mode=2: heat; mode=3: cool;
   bool heat = !cool and mode;
   digitalWrite(LED, light);
   digitalWrite(HEATER, heat);
   digitalWrite(COOLER, cool);
-  digitalWrite(SCG, );
+  digitalWrite(SCG, );  //???
 
   //*********************************СВЯЗЬ***************************************
   message[0] = hm;
@@ -103,7 +103,7 @@ void loop() {
   message[6] = byte(ppm % 100);
 
 
-  //********************************РАДИО*****************************************
+  //********************************РАДИО*****************************************   // ПЕРЕПИСАТЬ ЧЕРЕЗ СЕРИАЛ1
   void transmition() {
     radio.write(0xFF);
     byte checksum = 0;
